@@ -23,7 +23,7 @@ DB_CONNECTION_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{
 engine = create_engine(DB_CONNECTION_URL, echo=DEBUG)
 
 # Create SessionLocal Class for database sessions
-SessionLocal = sessionmaker(auto_commit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Base class for models
 Base = declarative_base()
