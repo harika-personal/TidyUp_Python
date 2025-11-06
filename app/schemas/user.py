@@ -13,7 +13,17 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class SignupResponse(BaseModel):
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class BaseAuthResponse(BaseModel):
     message: str
     token: str
     user: UserResponse
+
+class UserSignupResponse(BaseAuthResponse):
+    pass
+
+class UserLoginResponse(BaseAuthResponse):
+    pass

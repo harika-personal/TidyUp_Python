@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.schemas.user import UserCreate, UserResponse, SignupResponse
+from app.schemas.user import UserCreate, UserSignupResponse, UserLoginResponse, UserLogin
 from app.models import User
 from sqlalchemy import select
 from passlib.context import CryptContext
@@ -14,7 +14,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def test_endpoint():
     return{"message" : "Auth router is working"}
 
-@router.post("/signup", response_model=SignupResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/signup", response_model=UserSignupResponse, status_code=status.HTTP_201_CREATED)
 def signup(user_data:UserCreate, db: Session = Depends(get_db)):
     existing_user = db.execute(select(User).where(User.email == user_data.email)).scalar_one_or_none()
 
@@ -40,4 +40,30 @@ def signup(user_data:UserCreate, db: Session = Depends(get_db)):
         "token": token,
         "user": new_user
 
+    }
+
+@router.post("/login", response_model=UserLoginResponse, status_code=status.HTTP_200_OK)
+def login(user_data:UserLogin, db: Session = Depends(get_db)):
+    existing_user = db.execute(select(User).where(User.email == user_data.email)).scalar_one_or_none()
+
+    if not existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Credentials"
+        )
+
+    valid_password = pwd_context.verify(user_data.password, existing_user.password)
+
+    if not valid_password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Credentials"
+        )
+
+    token = create_access_token(data={"sub": str(existing_user.id), "email": existing_user.email})
+
+    return {
+        "message": "Login Successful!",
+        "token": token,
+        "user": existing_user
     }
