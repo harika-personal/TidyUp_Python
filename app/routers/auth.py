@@ -1,14 +1,34 @@
 from fastapi import APIRouter, status, Depends, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_200_OK
+
 from app.database import get_db
 from app.schemas.user import UserCreate, UserSignupResponse, UserLoginResponse, UserLogin
 from app.models import User
 from sqlalchemy import select
 from passlib.context import CryptContext
-from app.utils.auth import create_access_token
+from app.utils.auth import create_access_token, verify_token
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+security = HTTPBearer()
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """
+    Dependency to get current authenticated user from JWT token
+    """
+    token = credentials.credentials # Extract token from "Bearer <token>"
+    payload = verify_token(token)
+
+    if payload is None:
+        raise HTTPException(
+            status_code= HTTP_401_UNAUTHORIZED,
+            detail= "Token expired or invalid"
+        )
+    return payload # Returns decoded token data (user_id, email, etc.)
+
 
 @router.get("/test")
 def test_endpoint():
@@ -67,3 +87,10 @@ def login(user_data:UserLogin, db: Session = Depends(get_db)):
         "token": token,
         "user": existing_user
     }
+
+@router.post("/logout", status_code=HTTP_200_OK)
+def logout(current_user = Depends(get_current_user)):
+    return {
+        "message": "Logout Successful"
+    }
+
